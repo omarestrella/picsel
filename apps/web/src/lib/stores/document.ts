@@ -1,14 +1,13 @@
+import type { Project } from '@packages/shared/types';
 import { writable } from 'svelte/store';
-import { Automerge, type BaseDoc } from '../automerge';
+import { Automerge } from '../automerge';
 import { WebSocketTransport } from '../transport';
+import { activeLayer } from './layer';
 
-export function createDocumentStore<T extends BaseDoc>(options: {
-	actorID?: string;
-	docID: string;
-}) {
-	const doc = Automerge.init<T>({
-		actor: options.actorID
-	});
+export function createDocument(options: { docID: string; data?: Uint8Array }) {
+	const doc = options.data ? Automerge.load<Project>(options.data) : Automerge.init<Project>();
+
+	activeLayer.set(doc.layers?.[0]);
 
 	let syncState = Automerge.initSyncState();
 
@@ -18,12 +17,12 @@ export function createDocumentStore<T extends BaseDoc>(options: {
 
 	const documentStore = {
 		subscribe,
-		change(changeFn: Automerge.ChangeFn<T>) {
+		change(changeFn: Automerge.ChangeFn<Project>) {
 			update((currentDoc) => {
 				const newDoc = Automerge.change(currentDoc, changeFn);
-				const [newSyncState, syncMessage] = Automerge.generateSyncMessage(newDoc, syncState);
-				if (syncMessage) {
-					ws?.sendUpdates(syncMessage);
+				const updates = Automerge.getLastLocalChange(newDoc);
+				if (updates) {
+					ws?.sendUpdates(updates);
 				}
 				syncState = newSyncState;
 				return newDoc;
@@ -43,7 +42,9 @@ export function createDocumentStore<T extends BaseDoc>(options: {
 
 	const [newSyncState, syncMessage] = Automerge.generateSyncMessage(doc, syncState);
 	syncState = newSyncState;
-	ws.connect(options.docID, Automerge.getActorId(doc), syncMessage);
+	ws.connect(options.docID, Automerge.getActorId(doc), null);
 
 	return documentStore;
 }
+
+export type DocumentStore = ReturnType<typeof createDocument>;

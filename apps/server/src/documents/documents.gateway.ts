@@ -8,9 +8,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { IncomingMessage } from 'http';
-import { Server, WebSocket } from 'ws';
+import { Server, WebSocket, MessageEvent } from 'ws';
 import * as Automerge from '@automerge/automerge';
 import { InjectRedis, Redis } from '@nestjs-modules/ioredis';
+import { Logger } from '@nestjs/common';
+import { decodeMessage } from '@packages/shared/messages';
+
+import { DocumentsService } from './documents.service';
 
 type DocumentID = string;
 
@@ -25,6 +29,8 @@ export class DocumentsGateway
   @WebSocketServer()
   private server: Server;
 
+  logger = new Logger('DocumentsGateway');
+
   documents = new Map<DocumentID, Automerge.Doc<unknown>>();
   syncStates = new Map<Automerge.ActorId, Automerge.SyncState>();
 
@@ -34,7 +40,10 @@ export class DocumentsGateway
     { actorID: Automerge.ActorId; documentID: string }
   >();
 
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    private readonly documentsService: DocumentsService,
+  ) {}
 
   handleConnection(client: WebSocket, request: IncomingMessage) {
     const url = new URL(request.url, `http://${request.headers.host}`);
@@ -54,63 +63,58 @@ export class DocumentsGateway
       actorID,
       documentID,
     });
+
+    client.addEventListener('message', this.onMessage);
   }
 
   handleDisconnect(client: WebSocket) {
+    client.removeEventListener('message', this.onMessage);
+
     const data = this.connectionData.get(client);
     if (data) {
       const { documentID, actorID } = data;
       console.log('client disconnected', data.actorID);
 
       this.syncStates.delete(actorID);
+      this.connectionData.delete(client);
 
       const connections = this.connections.get(documentID);
       if (connections) {
         connections.delete(client);
       }
+
+      if (connections.size === 0) {
+        this.connections.delete(documentID);
+        this.documents.delete(documentID);
+      }
     }
   }
 
-  @SubscribeMessage('connect')
-  async handleAuthentication(
-    @MessageBody()
-    {
-      actorID,
-      documentID,
-      syncMessage,
-    }: { actorID: string; documentID: string; syncMessage: number[] },
-    @ConnectedSocket() client: WebSocket,
-  ) {
+  onMessage = (ev: MessageEvent) => {
+    const decoded = decodeMessage(ev.data as Buffer);
+    console.log(decoded);
+  };
+
+  async handleConnect(documentID: string, actorID: string) {
     // perform auth here?
 
-    const initialSyncState = Automerge.initSyncState();
+    console.log('got this', actorID);
 
-    const document = await this.getDocument(actorID, documentID);
+    const document = await this.documentsService.getDocument(documentID);
 
-    // Get the clients sync information when they connect and apply to the
-    // document
-    if (syncMessage.length > 0) {
-      const [newDoc, syncState] = Automerge.receiveSyncMessage(
-        document,
-        initialSyncState,
-        Uint8Array.from(syncMessage),
-      );
-      this.documents.set(documentID, newDoc);
+    const [newSyncState, updates] = Automerge.generateSyncMessage(
+      document,
+      Automerge.initSyncState(),
+    );
+    const [newDoc, finalSyncState] = Automerge.receiveSyncMessage(
+      document,
+      newSyncState,
+      updates,
+    );
 
-      await this.saveDocument(documentID, newDoc);
+    this.syncStates.set(actorID, finalSyncState);
 
-      // Generate a sync message for the client to consume and apply to their
-      // local document
-      const [newSyncState, clientSyncMessage] = Automerge.generateSyncMessage(
-        newDoc,
-        syncState,
-      );
-      this.syncStates.set(actorID, newSyncState);
-
-      const message = this.encodedMessage('sync', clientSyncMessage);
-      const buffer = Buffer.from(message);
-      client.send(buffer);
-    }
+    await this.documentsService.saveDocument(documentID, newDoc);
   }
 
   @SubscribeMessage('update')
@@ -118,24 +122,31 @@ export class DocumentsGateway
     @MessageBody() data: { updates: number[] },
     @ConnectedSocket() client: WebSocket,
   ) {
+    if (data.updates.length <= 0) {
+      return;
+    }
+
+    this.logger.debug('Recieved update from client');
+
     const connectionData = this.connectionData.get(client);
     if (!connectionData) {
-      console.error('No connection data');
+      this.logger.error('No connection data');
+      return;
     }
 
     // First sync the doc with the incoming changes from the client
-    const { documentID, actorID } = connectionData;
-    const document = this.documents.get(documentID);
-    const currentSyncState = this.syncStates.get(actorID);
-    const [newDoc, clientSyncState] = Automerge.receiveSyncMessage(
-      document,
-      currentSyncState,
-      Uint8Array.from(data.updates),
-    );
-    this.documents.set(documentID, newDoc);
-    this.syncStates.set(actorID, clientSyncState);
+    const { documentID } = connectionData;
+    const document = await this.documentsService.getDocument(documentID);
+    if (!document) {
+      this.logger.error('Document not found');
+    }
 
-    await this.saveDocument(documentID, newDoc);
+    const newDoc = Automerge.loadIncremental(
+      document,
+      new Uint8Array(data.updates),
+    );
+
+    await this.documentsService.saveDocument(documentID, newDoc);
 
     // Then we want to send the new document state to other clients
     const allConnections = this.connections.get(documentID);
@@ -154,14 +165,12 @@ export class DocumentsGateway
         );
         this.syncStates.set(actorID, newSyncState);
         if (!clientSyncMessage) {
-          console.log('No sync message to send');
+          this.logger.log('No sync message to send');
           return;
         }
 
         const message = this.encodedMessage('sync', clientSyncMessage);
         const buffer = Buffer.from(message);
-
-        console.log('sending message to client', actorID);
         connection.send(buffer);
       }
     });
@@ -172,34 +181,5 @@ export class DocumentsGateway
     const encoder = new TextEncoder();
     const encodedEvent = encoder.encode(event);
     return [...encodedEvent, 0, ...data];
-  }
-
-  // going to fake reading the document
-  // ideally it can store permanent in redis or sql or something
-  private async getDocument(actorID: string, documentID: string) {
-    if (this.documents.has(documentID)) {
-      return this.documents.get(documentID);
-    }
-
-    let document: Automerge.Doc<unknown>;
-    const documentData = await this.redis.getBuffer(documentID);
-    if (documentData) {
-      const data = Uint8Array.from(documentData);
-      document = Automerge.load(data);
-    } else {
-      document = Automerge.from({
-        id: documentID,
-        todos: [],
-      });
-    }
-
-    return document;
-  }
-
-  private async saveDocument(
-    documentID: string,
-    document: Automerge.Doc<unknown>,
-  ) {
-    await this.redis.set(documentID, Buffer.from(Automerge.save(document)));
   }
 }

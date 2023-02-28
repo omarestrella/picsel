@@ -1,17 +1,12 @@
-import { EventEmitter } from 'event-emitter';
-import { Automerge, type BaseDoc } from './automerge';
+import { EventEmitter } from '@packages/event-emitter';
+import { encodeMessage, type Messages } from '@packages/shared/messages';
 
 type WebSocketEvents = {
 	update: { updates: number[] };
 	connect: { documentID: string; actorID: string; syncMessage: number[] };
 };
 
-type Events = {
-	sync(data: Uint8Array): void;
-	connected(data: Uint8Array): void;
-};
-
-export class WebSocketTransport extends EventEmitter<Events> {
+export class WebSocketTransport extends EventEmitter<Messages> {
 	private connected = false;
 
 	private ws: WebSocket | undefined;
@@ -31,11 +26,7 @@ export class WebSocketTransport extends EventEmitter<Events> {
 		this.ws.addEventListener('open', () => {
 			if (this.ws?.readyState === this.ws?.OPEN) {
 				console.log('Actor connecting -', actorID);
-				this.send('connect', {
-					documentID: documentID,
-					actorID: actorID,
-					syncMessage: Array.from(syncMessage ?? []) as number[]
-				});
+				this.send('connect', documentID, actorID);
 			}
 		});
 		this.ws.addEventListener('close', () => {
@@ -44,16 +35,11 @@ export class WebSocketTransport extends EventEmitter<Events> {
 	}
 
 	sendUpdates(updates: Uint8Array) {
-		this.send('update', { updates: Array.from(updates) });
+		this.send('update', Array.from(updates));
 	}
 
-	send<E extends keyof WebSocketEvents>(event: E, data: WebSocketEvents[E]) {
-		this.ws?.send(
-			JSON.stringify({
-				event,
-				data
-			})
-		);
+	send<E extends keyof Messages>(event: E, ...args: Parameters<Messages[E]>) {
+		this.ws?.send(encodeMessage(event, ...args));
 	}
 
 	onMessage = (ev: MessageEvent) => {
@@ -62,7 +48,7 @@ export class WebSocketTransport extends EventEmitter<Events> {
 			const { event, update } = this.decodeEvent(arr);
 
 			if (event) {
-				this.emit(event as keyof Events, update);
+				this.emit(event as keyof Messages, update);
 			}
 		} catch (err) {
 			console.error('Could not parse server event', err);
