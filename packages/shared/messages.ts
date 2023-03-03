@@ -1,4 +1,5 @@
 import { unpack, pack } from "msgpackr";
+import { z } from "zod";
 
 export type Messages = {
   // Server
@@ -10,16 +11,42 @@ export type Messages = {
   connect(documentID: string, actorID: string): void;
 };
 
-export function encodeMessage<K extends keyof Messages>(
-  type: K,
-  ...args: Parameters<Messages[K]>
+export const ServerMessage = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("sync"), data: z.instanceof(Uint8Array) }),
+  z.object({ type: z.literal("connected"), data: z.instanceof(Uint8Array) }),
+]);
+export type ServerMessage = z.infer<typeof ServerMessage>;
+
+export const ClientMessage = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("update"), updates: z.array(z.number()) }),
+  z.object({
+    type: z.literal("connect"),
+    documentID: z.string(),
+    actorID: z.string(),
+  }),
+]);
+export type ClientMessage = z.infer<typeof ClientMessage>;
+
+const Message = z.union([ClientMessage, ServerMessage]);
+export type Message = z.infer<typeof Message>;
+
+export type MessageType = Message["type"];
+export type MessageData<T extends MessageType> = Omit<
+  Extract<Message, { type: T }>,
+  "type"
+>;
+
+export function encodeMessage<T extends MessageType>(
+  type: T,
+  data: Omit<Extract<Message, { type: T }>, "type">
 ) {
   return pack({
     type,
-    data: args,
+    ...data,
   });
 }
 
-export function decodeMessage(message: Buffer | Uint8Array) {
-  return unpack(message);
+export function decodeMessage(message: Uint8Array): Message {
+  const unpacked = unpack(message);
+  return Message.parse(unpacked);
 }

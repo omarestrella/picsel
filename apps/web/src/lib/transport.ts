@@ -1,24 +1,23 @@
 import { EventEmitter } from '@packages/event-emitter';
-import { encodeMessage, type Messages } from '@packages/shared/messages';
-
-type WebSocketEvents = {
-	update: { updates: number[] };
-	connect: { documentID: string; actorID: string; syncMessage: number[] };
-};
+import {
+	encodeMessage,
+	type MessageData,
+	type Messages,
+	type MessageType
+} from '@packages/shared/messages';
 
 export class WebSocketTransport extends EventEmitter<Messages> {
 	private connected = false;
 
 	private ws: WebSocket | undefined;
 
-	connect(documentID: string, actorID: string, syncMessage: Uint8Array | null) {
+	connect(documentID: string, actorID: string) {
 		if (typeof WebSocket === 'undefined') {
 			return;
 		}
 
-		const url = new URL('ws://localhost:3002/documents');
+		const url = new URL(`ws://localhost:3000/documents/${documentID}/sync`);
 		url.searchParams.append('actorID', actorID);
-		url.searchParams.append('documentID', documentID);
 
 		this.ws = new WebSocket(url.toString());
 		this.ws.binaryType = 'arraybuffer';
@@ -26,20 +25,20 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 		this.ws.addEventListener('open', () => {
 			if (this.ws?.readyState === this.ws?.OPEN) {
 				console.log('Actor connecting -', actorID);
-				this.send('connect', documentID, actorID);
+				this.send('connect', { documentID, actorID });
 			}
 		});
 		this.ws.addEventListener('close', () => {
-			setTimeout(() => this.connect(documentID, actorID, null), 500);
+			setTimeout(() => this.connect(documentID, actorID), 2000);
 		});
 	}
 
 	sendUpdates(updates: Uint8Array) {
-		this.send('update', Array.from(updates));
+		this.send('update', { updates: Array.from(updates) });
 	}
 
-	send<E extends keyof Messages>(event: E, ...args: Parameters<Messages[E]>) {
-		this.ws?.send(encodeMessage(event, ...args));
+	send<T extends MessageType>(type: T, data: MessageData<T>) {
+		this.ws?.send(encodeMessage(type, data));
 	}
 
 	onMessage = (ev: MessageEvent) => {

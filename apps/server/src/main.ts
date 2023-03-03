@@ -1,13 +1,13 @@
-import { NestFactory } from '@nestjs/core';
-import { WsAdapter } from '@nestjs/platform-ws';
-import { AppModule } from './app.module';
+import { Application } from "https://deno.land/x/oak@v11.1.0/mod.ts";
+import logger from "https://deno.land/x/oak_logger@1.0.0/mod.ts";
+import { router } from "./documents/router.ts";
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors({
-    origin: '*',
-  });
-  app.useWebSocketAdapter(new WsAdapter(app));
-  await app.listen(3000);
-}
-bootstrap();
+const app = new Application();
+
+app.use(logger.logger);
+app.use(logger.responseTime);
+
+app.use(router.routes());
+app.use(router.allowedMethods());
+
+await app.listen({ port: 3000 });

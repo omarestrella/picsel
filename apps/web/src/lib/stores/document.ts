@@ -42,7 +42,7 @@ export function createDocument(options: { docID: string; data?: Uint8Array }) {
 
 	const [newSyncState, syncMessage] = Automerge.generateSyncMessage(doc, syncState);
 	syncState = newSyncState;
-	ws.connect(options.docID, Automerge.getActorId(doc), null);
+	ws.connect(options.docID, Automerge.getActorId(doc));
 
 	return documentStore;
 }

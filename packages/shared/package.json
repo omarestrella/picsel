@@ -10,6 +10,7 @@
     "format": "prettier --write --ignore-path=../../.prettierignore ."
   },
   "dependencies": {
-    "msgpackr": "^1.8.4"
+    "msgpackr": "^1.8.4",
+    "zod": "^3.20.6"
   }
 }

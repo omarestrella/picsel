@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "@packages": "../../packages",
+    "@packages/": "../../packages/",
+    "msgpackr": "npm:msgpackr",
+    "zod": "https://deno.land/x/zod/mod.ts"
+  }
+}
