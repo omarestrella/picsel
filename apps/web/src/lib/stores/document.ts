@@ -17,9 +17,11 @@ export function createDocument(options: { docID: string; data?: Uint8Array }) {
 
 	const documentStore = {
 		subscribe,
-		change(changeFn: Automerge.ChangeFn<Project>) {
+		change(changeFn: Automerge.ChangeFn<Project>, options?: Automerge.ChangeOptions<Project>) {
 			update((currentDoc) => {
-				const newDoc = Automerge.change(currentDoc, changeFn);
+				const newDoc = options
+					? Automerge.change(currentDoc, options, changeFn)
+					: Automerge.change(currentDoc, changeFn);
 				const updates = Automerge.getLastLocalChange(newDoc);
 				if (updates) {
 					ws?.sendUpdates(updates);

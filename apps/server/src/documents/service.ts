@@ -38,13 +38,29 @@ export class DocumentsService {
     return document;
   }
 
+  public async createDocument(documentID: string) {
+    const document = Automerge.from<Project>({
+      id: documentID,
+      layers: [{ cells: [], id: crypto.randomUUID(), name: "Layer 1" }],
+      name: "Test Name",
+      size: {
+        width: 16,
+        height: 16,
+      },
+    } as Project);
+    await this.saveDocument(documentID, document);
+    return document;
+  }
+
   public async getDocumentData(documentID: string) {
+    const haveDocument = await this.redis.exists(documentID);
     const documentData = await this.redis.sendCommand("GET", documentID);
-    if (documentData) {
+    if (!!haveDocument && documentData) {
       return Uint8Array.from(documentData.buffer());
     } else {
+      console.log("here 1");
       this.logger.log("Creating new document on demand");
-      const doc = await this.getDocument(documentID);
+      const doc = await this.createDocument(documentID);
       return Automerge.save(doc);
     }
   }

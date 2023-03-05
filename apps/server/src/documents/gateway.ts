@@ -124,40 +124,45 @@ export class DocumentsGateway {
       this.logger.error("Document not found");
     }
 
-    const newDoc = Automerge.loadIncremental(document, new Uint8Array(updates));
+    try {
+      const newDoc = Automerge.loadIncremental(
+        document,
+        new Uint8Array(updates)
+      );
 
-    await this.documentsService.saveDocument(documentID, newDoc);
+      await this.documentsService.saveDocument(documentID, newDoc);
 
-    // Then we want to send the new document state to other clients
-    const allConnections = this.connections.get(documentID);
-    if (!allConnections) {
-      return;
-    }
-    allConnections.forEach((connection) => {
-      if (connection !== client) {
-        const { documentID, actorID } =
-          this.connectionData.get(connection) ?? {};
-        if (!documentID || !actorID) {
-          return;
-        }
-
-        const syncState =
-          this.syncStates.get(actorID) ?? Automerge.initSyncState();
-        const [newSyncState, clientSyncMessage] = Automerge.generateSyncMessage(
-          newDoc,
-          syncState
-        );
-        this.syncStates.set(actorID, newSyncState);
-        if (!clientSyncMessage) {
-          this.logger.log("No sync message to send");
-          return;
-        }
-
-        const message = this.encodedMessage("sync", clientSyncMessage);
-        const buffer = new Uint8Array(message);
-        connection.send(buffer);
+      // Then we want to send the new document state to other clients
+      const allConnections = this.connections.get(documentID);
+      if (!allConnections) {
+        return;
       }
-    });
+      allConnections.forEach((connection) => {
+        if (connection !== client) {
+          const { documentID, actorID } =
+            this.connectionData.get(connection) ?? {};
+          if (!documentID || !actorID) {
+            return;
+          }
+
+          const syncState =
+            this.syncStates.get(actorID) ?? Automerge.initSyncState();
+          const [newSyncState, clientSyncMessage] =
+            Automerge.generateSyncMessage(newDoc, syncState);
+          this.syncStates.set(actorID, newSyncState);
+          if (!clientSyncMessage) {
+            this.logger.log("No sync message to send");
+            return;
+          }
+
+          const message = this.encodedMessage("sync", clientSyncMessage);
+          const buffer = new Uint8Array(message);
+          connection.send(buffer);
+        }
+      });
+    } catch (error) {
+      this.logger.error("Error updating document", error);
+    }
   }
 
   // silly encoding method to store info in an array buffer

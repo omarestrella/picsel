@@ -9,11 +9,18 @@
 	const documentStore: DocumentStore = getContext('documentStore');
 
 	let size: ProjectSize;
+	let pointerDown: boolean;
 
 	$: {
 		size = $documentStore.size;
 	}
 </script>
+
+<svelte:window
+	on:pointerdown={() => (pointerDown = true)}
+	on:pointerup={() => (pointerDown = false)}
+	on:pointerleave={() => (pointerDown = false)}
+/>
 
 {#if $activeLayer}
 	<div
@@ -26,7 +33,7 @@
 		{#each new Array(size.width).fill(0) as _, y}
 			<div class="row">
 				{#each new Array(size.height).fill(0) as _, x}
-					<Cell {x} {y} layer={$activeLayer} />
+					<Cell {x} {y} layer={$activeLayer} modifyOnHover={pointerDown} />
 				{/each}
 			</div>
 		{/each}

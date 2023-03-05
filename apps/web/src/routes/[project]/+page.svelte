@@ -9,7 +9,7 @@
 
 	const documentData = new Uint8Array(data.document);
 
-	let docID = '1234';
+	let docID = data.projectID;
 
 	let document = createDocument({
 		docID,
