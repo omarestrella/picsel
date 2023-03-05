@@ -1,5 +1,5 @@
 import { Automerge } from "../automerge.ts";
-import { decodeMessage } from "@packages/shared/messages.ts";
+import { decodeMessage, encodeMessage } from "@packages/shared/messages.ts";
 
 import { Logger } from "../logger.ts";
 import { DocumentsService } from "./service.ts";
@@ -155,20 +155,12 @@ export class DocumentsGateway {
             return;
           }
 
-          const message = this.encodedMessage("sync", clientSyncMessage);
-          const buffer = new Uint8Array(message);
-          connection.send(buffer);
+          const message = encodeMessage("sync", { data: clientSyncMessage });
+          connection.send(message);
         }
       });
     } catch (error) {
       this.logger.error("Error updating document", error);
     }
-  }
-
-  // silly encoding method to store info in an array buffer
-  private encodedMessage(event: string, data: Uint8Array) {
-    const encoder = new TextEncoder();
-    const encodedEvent = encoder.encode(event);
-    return [...encodedEvent, 0, ...data];
   }
 }

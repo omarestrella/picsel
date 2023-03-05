@@ -1,5 +1,6 @@
 import { EventEmitter } from '@packages/event-emitter';
 import {
+	decodeMessage,
 	encodeMessage,
 	type MessageData,
 	type Messages,
@@ -44,10 +45,10 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 	onMessage = (ev: MessageEvent) => {
 		try {
 			const arr = new Uint8Array(ev.data);
-			const { event, update } = this.decodeEvent(arr);
+			const message = decodeMessage(arr);
 
-			if (event) {
-				this.emit(event as keyof Messages, update);
+			if (message.type === 'sync') {
+				this.emit('sync', message.data);
 			}
 		} catch (err) {
 			console.error('Could not parse server event', err);
