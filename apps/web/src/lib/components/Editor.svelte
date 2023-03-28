@@ -1,13 +1,21 @@
 <script lang="ts">
 	import type { DocumentStore } from '$lib/stores/document';
 	import { getContext } from 'svelte';
-	import type { Project } from 'shared';
 	import Canvas from './canvas/Canvas.svelte';
 	import Layers from './Layers.svelte';
 	import Toolbar from './Toolbar.svelte';
 
-	let document = getContext('documentStore') as DocumentStore<Project>;
+	let document = getContext<DocumentStore>('documentStore');
 </script>
+
+<svelte:window
+	on:keypress={(event) => {
+		if (event.metaKey && event.key === 'z') {
+			event.preventDefault();
+			document.undo();
+		}
+	}}
+/>
 
 {#if $document.id}
 	<div class="editor">

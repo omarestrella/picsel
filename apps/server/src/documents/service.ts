@@ -2,6 +2,8 @@ import type { Project } from "@packages/shared/types.ts";
 import { Automerge } from "../automerge.ts";
 import { Logger } from "../logger.ts";
 import { Redis } from "../redis.ts";
+import { connection } from "../db.ts";
+import _ from "npm:lodash";
 
 type DocumentID = string;
 
@@ -71,5 +73,12 @@ export class DocumentsService {
   ) {
     await this.redis.set(documentID, Automerge.save(document));
     this.documents.set(documentID, document);
+
+    this.storeDocument(documentID);
   }
+
+  // I dont think this is safe... 🤷‍♂️
+  private storeDocument = _.debounce((documentID: string) => {
+    connection;
+  }, 5000);
 }

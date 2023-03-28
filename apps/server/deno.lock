@@ -54,6 +54,9 @@
     "https://deno.land/std@0.178.0/datetime/to_imf.ts": "851d072a1c86c7ec34c753e61b1951ceda50c9da805b170a0ecaea3b024dd266",
     "https://deno.land/std@0.178.0/datetime/week_of_year.ts": "00ce4203f1efc69e2c0902ff4a4451a49d8a87a561e941b692f3b5f056f1f441",
     "https://deno.land/std@0.178.0/fmt/colors.ts": "938c5d44d889fb82eff6c358bea8baa7e85950a16c9f6dae3ec3a7a729164471",
+    "https://deno.land/std@0.180.0/collections/filter_values.ts": "5b9feaf17b9a6e5ffccdd36cf6f38fa4ffa94cff2602d381c2ad0c2a97929652",
+    "https://deno.land/std@0.180.0/collections/without_all.ts": "a89f5da0b5830defed4f59666e188df411d8fece35a5f6ca69be6ca71a95c185",
+    "https://deno.land/std@0.180.0/dotenv/mod.ts": "8dcbc8a40b896a0bf094582aaeadbfc76d3528872faf2efc0302beb1d2f6afd0",
     "https://deno.land/std@0.53.0/fmt/colors.ts": "ec9d653672a9a3c7b6eafe53c5bc797364a2db2dcf766ab649c1155fea7a80b2",
     "https://deno.land/x/automerge@2.0.2/conflicts.ts": "f53a8507013354f0b0f962eb1c80169f96b073bfafd59c37aaf6f5182891b286",
     "https://deno.land/x/automerge@2.0.2/constants.ts": "fce1759524fbf04adc45396bfc13742f7b69873b4f1fa6c0d56976392aa40cd5",
@@ -80,6 +83,7 @@
     "https://deno.land/x/cors@v1.2.2/oakCors.ts": "1348dc7673c61b85d2e80559a7b44f8e0246eaa6bcc6ec744fafe5d9b13b5c71",
     "https://deno.land/x/cors@v1.2.2/opineCors.ts": "fb5790115c26b7061d84b8d6c17d258a1e241bcab75b0bc3ca1fdb2e57bc5072",
     "https://deno.land/x/cors@v1.2.2/types.ts": "97546633ccc7f0df7a29bacba5d91dc6f61decdd1b65258300244dba905d34b8",
+    "https://deno.land/x/lodash@4.17.19/lodash.js": "efa0ecfaf5548e32a16e18d3700436cd146c48b4f3712f095dae6f00100018e5",
     "https://deno.land/x/oak@v11.1.0/application.ts": "0a728331822b8e27727ceec48a8499657c3163fc48fd379a8a9578a75f3cdb62",
     "https://deno.land/x/oak@v11.1.0/body.ts": "78402a4936accb80372c4944384658105604352d6783de7ff1e36b8832dd93c9",
     "https://deno.land/x/oak@v11.1.0/buf_reader.ts": "7cf96aa0ac670b75098113cf88a291a68332cc45efa8a9698f064ac5b8098a0f",
@@ -150,6 +154,10 @@
   },
   "npm": {
     "specifiers": {
+      "@planetscale/database": "@planetscale/database@1.6.0",
+      "dotenv": "dotenv@16.0.3",
+      "drizzle-orm": "drizzle-orm@0.22.0_@planetscale+database@1.6.0",
+      "lodash": "lodash@4.17.21",
       "msgpackr": "msgpackr@1.8.4"
     },
     "packages": {
@@ -175,6 +183,27 @@
       },
       "@msgpackr-extract/msgpackr-extract-win32-x64@3.0.2": {
         "integrity": "sha512-O+6Gs8UeDbyFpbSh2CPEz/UOrrdWPTBYNblZK5CxxLisYt4kGX3Sc+czffFonyjiGSq3jWLwJS/CCJc7tBr4sQ==",
+        "dependencies": {}
+      },
+      "@planetscale/database@1.6.0": {
+        "integrity": "sha512-eb02567S706Xme/nVwx+EN/wyoHhHBXl1a7+67R/Xm91myEpLn0vZNl58TvLZztBxje4gga16lc8dLt0elNrJA==",
+        "dependencies": {}
+      },
+      "dotenv@16.0.3": {
+        "integrity": "sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==",
+        "dependencies": {}
+      },
+      "drizzle-orm@0.22.0_@planetscale+database@1.6.0": {
+        "integrity": "sha512-oZ/CNbv3NXoCxmBWTPNAZHZkuzhacT+eXM0ywemkHSTiqEJe79VQ1jvGVd0fQthfOt1UHRMuAW0CeIizhQpb2Q==",
+        "dependencies": {
+          "@aws-sdk/client-rds-data": "@planetscale/database@1.6.0",
+          "@cloudflare/workers-types": "@planetscale/database@1.6.0",
+          "@neondatabase/serverless": "@planetscale/database@1.6.0",
+          "@planetscale/database": "@planetscale/database@1.6.0"
+        }
+      },
+      "lodash@4.17.21": {
+        "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==",
         "dependencies": {}
       },
       "msgpackr-extract@3.0.2": {

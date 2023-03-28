@@ -29,6 +29,9 @@ export function createDocument(options: { docID: string; data?: Uint8Array }) {
 				syncState = newSyncState;
 				return newDoc;
 			});
+		},
+		undo() {
+			console.log('No undo yet :(');
 		}
 	};
 

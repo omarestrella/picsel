@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import type { DocumentStore } from '$lib/stores/document';
 	import { tools } from '$lib/stores/tools';
 	import { v4 as uuid } from 'uuid';
 	import { getContext } from 'svelte';
+	import Icon from '$lib/icons/Icon.svelte';
 
 	const documentStore: DocumentStore = getContext('documentStore');
 
@@ -34,18 +36,24 @@
 	</div>
 	<div class="group">
 		<button on:click={() => tools.setTool('pencil')}>
-			Pencil {$tools.tool === 'pencil' ? '*' : ''}
+			<Icon kind="pencil" size="18px" />
+			{$tools.tool === 'pencil' ? '*' : ''}
 		</button>
 		<button on:click={() => tools.setTool('fill')}>
-			Fill {$tools.tool === 'fill' ? '*' : ''}
+			<Icon kind="bucket" size="18px" />
+			{$tools.tool === 'fill' ? '*' : ''}
 		</button>
 		<button on:click={() => tools.setTool('eraser')}>
-			Eraser {$tools.tool === 'eraser' ? '*' : ''}
+			<Icon kind="eraser" size="18px" />
+			{$tools.tool === 'eraser' ? '*' : ''}
 		</button>
+	</div>
+	<div class="group">
+		{$page.data.session?.user?.email}
 	</div>
 </div>
 
-<style>
+<style lang="postcss">
 	.toolbar {
 		display: flex;
 		gap: 12px;
@@ -54,5 +62,26 @@
 		padding: 8px;
 
 		border-bottom: 1px solid black;
+	}
+
+	.group {
+		display: flex;
+		gap: 4px;
+	}
+
+	button {
+		display: inline-flex;
+
+		width: auto;
+		height: auto;
+		padding: 0;
+		margin: 0;
+
+		border: 1px solid black;
+		background-color: transparent;
+
+		&:hover {
+			cursor: pointer;
+		}
 	}
 </style>

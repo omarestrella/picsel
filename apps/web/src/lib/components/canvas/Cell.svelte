@@ -5,7 +5,6 @@
 	import type { Cell, Layer } from '@packages/shared/types';
 	import { getContext } from 'svelte';
 	import { v4 } from 'uuid';
-	import Layers from '../Layers.svelte';
 
 	export let layer: Layer;
 	export let x: number;

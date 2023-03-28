@@ -41,6 +41,8 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@auth/core": "0.5.1",
+		"@auth/sveltekit": "0.3.0",
 		"@automerge/automerge": "^2.0.2",
 		"@packages/event-emitter": "workspace:*",
 		"@packages/shared": "workspace:*",
