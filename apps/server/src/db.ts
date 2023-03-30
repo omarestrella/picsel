@@ -1,12 +1,57 @@
-import { load } from "https://deno.land/std@0.180.0/dotenv/mod.ts";
-import { connect } from "npm:@planetscale/database";
+import { load } from "https://deno.land/std@0.181.0/dotenv/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.1.0";
 
-const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = await load();
+const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = await load();
 
-export const connection = connect({
-  host: DATABASE_HOST,
-  username: DATABASE_USERNAME,
-  password: DATABASE_PASSWORD,
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-export async function createProject() {}
+export async function getProjectData(owner: string, documentID: string) {
+  const file = await supabase.storage
+    .from("documents")
+    .download(`${owner}/${documentID}`);
+  if (file.error) {
+    throw new Error(file.error.message);
+  }
+  if (!file.data) {
+    throw new Error("File not found");
+  }
+  return new Uint8Array(await file.data.arrayBuffer());
+}
+
+export async function writeProjectData(
+  owner: string,
+  documentID: string,
+  documentData: Uint8Array
+) {
+  const file = await supabase.storage
+    .from("documents")
+    .upload(
+      `${owner}/${documentID}`,
+      new Blob([documentData], { type: "application/octet-stream" }),
+      {
+        upsert: true,
+        contentType: "application/octet-stream",
+      }
+    );
+  if (file.error) {
+    throw new Error(file.error.message);
+  }
+  if (!file.data) {
+    throw new Error("File not found");
+  }
+}
+
+export async function getProject(projectID: string) {
+  const project = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectID)
+    .single();
+  if (project.error) {
+    throw new Error(project.error.message);
+  }
+  if (!project.data) {
+    throw new Error("Project not found");
+  }
+  return project.data;
+}

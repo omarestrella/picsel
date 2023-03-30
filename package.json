@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "prettier": "latest",
+    "supabase": "1.45.2",
     "turbo": "latest"
   },
   "engines": {

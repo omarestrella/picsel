@@ -9,10 +9,9 @@
 
 	const documentData = new Uint8Array(data.document);
 
-	let docID = data.projectID;
-
 	let document = createDocument({
-		docID,
+		owner: data.project.owner,
+		documentID: data.project.document_id,
 		data: documentData
 	});
 

@@ -15,7 +15,7 @@ function createStore() {
 			documentStore = docStore;
 			documentStore.subscribe((doc) => {
 				store.update((currentLayer) => {
-					return doc.layers.find((layer) => layer.id === currentLayer?.id);
+					return doc.layers?.find((layer) => layer.id === currentLayer?.id);
 				});
 			});
 		}

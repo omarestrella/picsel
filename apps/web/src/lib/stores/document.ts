@@ -4,7 +4,7 @@ import { Automerge } from '../automerge';
 import { WebSocketTransport } from '../transport';
 import { activeLayer } from './layer';
 
-export function createDocument(options: { docID: string; data?: Uint8Array }) {
+export function createDocument(options: { owner: string; documentID: string; data?: Uint8Array }) {
 	const doc = options.data ? Automerge.load<Project>(options.data) : Automerge.init<Project>();
 
 	activeLayer.set(doc.layers?.[0]);
@@ -47,7 +47,7 @@ export function createDocument(options: { docID: string; data?: Uint8Array }) {
 
 	const [newSyncState, syncMessage] = Automerge.generateSyncMessage(doc, syncState);
 	syncState = newSyncState;
-	ws.connect(options.docID, Automerge.getActorId(doc));
+	ws.connect(options.owner, options.documentID, Automerge.getActorId(doc));
 
 	return documentStore;
 }

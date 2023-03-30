@@ -8,7 +8,7 @@ export type Messages = {
 
   // Client
   update(updates: number[]): void;
-  connect(documentID: string, actorID: string): void;
+  connect(owner: string, documentID: string, actorID: string): void;
 };
 
 export const ServerMessage = z.discriminatedUnion("type", [
@@ -21,6 +21,7 @@ export const ClientMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("update"), updates: z.array(z.number()) }),
   z.object({
     type: z.literal("connect"),
+    owner: z.string(),
     documentID: z.string(),
     actorID: z.string(),
   }),

@@ -15,13 +15,18 @@ export class DocumentsGateway {
   connections = new Map<DocumentID, Set<WebSocket>>();
   connectionData = new Map<
     WebSocket,
-    { actorID: Automerge.ActorId; documentID: string }
+    { owner: string; actorID: Automerge.ActorId; documentID: string }
   >();
 
   constructor(private readonly documentsService: DocumentsService) {}
 
-  onConnect(client: WebSocket, documentID: string, actorID: string | null) {
-    if (!actorID || !documentID) {
+  onConnect(
+    client: WebSocket,
+    documentID: string,
+    owner: string | null,
+    actorID: string | null
+  ) {
+    if (!actorID || !documentID || !owner) {
       client.close(4500);
       return;
     }
@@ -33,6 +38,7 @@ export class DocumentsGateway {
     connections.add(client);
 
     this.connectionData.set(client, {
+      owner,
       actorID,
       documentID,
     });
@@ -57,6 +63,7 @@ export class DocumentsGateway {
         if (connections.size === 0) {
           this.connections.delete(documentID);
           this.documents.delete(documentID);
+          this.documentsService.clearLocalCache(documentID);
         }
       }
     }
@@ -70,7 +77,12 @@ export class DocumentsGateway {
           this.handleUpdate(client, decoded.updates);
           break;
         case "connect":
-          this.handleConnect(client, decoded.documentID, decoded.actorID);
+          this.handleConnect(
+            client,
+            decoded.owner,
+            decoded.documentID,
+            decoded.actorID
+          );
           break;
       }
     } catch (err) {
@@ -78,29 +90,38 @@ export class DocumentsGateway {
     }
   };
 
-  async handleConnect(_client: WebSocket, documentID: string, actorID: string) {
+  async handleConnect(
+    _client: WebSocket,
+    owner: string,
+    documentID: string,
+    actorID: string
+  ) {
     // perform auth here?
-    const document = await this.documentsService.getDocument(documentID);
+    const document = await this.documentsService.getDocument(owner, documentID);
 
-    const [newSyncState, updates] = Automerge.generateSyncMessage(
-      document,
-      Automerge.initSyncState()
-    );
+    try {
+      const [newSyncState, updates] = Automerge.generateSyncMessage(
+        document,
+        Automerge.initSyncState()
+      );
 
-    if (updates) {
-      try {
-        const [newDoc, finalSyncState] = Automerge.receiveSyncMessage(
-          document,
-          newSyncState,
-          updates
-        );
+      if (updates) {
+        try {
+          const [newDoc, finalSyncState] = Automerge.receiveSyncMessage(
+            document,
+            newSyncState,
+            updates
+          );
 
-        this.syncStates.set(actorID, finalSyncState);
+          this.syncStates.set(actorID, finalSyncState);
 
-        await this.documentsService.saveDocument(documentID, newDoc);
-      } catch (err) {
-        this.logger.error("Could not update document", err);
+          await this.documentsService.saveDocument(owner, documentID, newDoc);
+        } catch (err) {
+          this.logger.error("Could not update document", err);
+        }
       }
+    } catch (err) {
+      this.logger.error("Could not generate sync message", err);
     }
   }
 
@@ -118,8 +139,8 @@ export class DocumentsGateway {
     }
 
     // First sync the doc with the incoming changes from the client
-    const { documentID } = connectionData;
-    const document = await this.documentsService.getDocument(documentID);
+    const { documentID, owner } = connectionData;
+    const document = await this.documentsService.getDocument(owner, documentID);
     if (!document) {
       this.logger.error("Document not found");
     }
@@ -130,7 +151,7 @@ export class DocumentsGateway {
         new Uint8Array(updates)
       );
 
-      await this.documentsService.saveDocument(documentID, newDoc);
+      await this.documentsService.saveDocument(owner, documentID, newDoc);
 
       // Then we want to send the new document state to other clients
       const allConnections = this.connections.get(documentID);

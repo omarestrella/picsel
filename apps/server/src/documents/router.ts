@@ -26,6 +26,7 @@ router
       documentsGateway.onConnect(
         ws,
         context.params.id,
+        context.request.url.searchParams.get("owner"),
         context.request.url.searchParams.get("actorID")
       );
     }

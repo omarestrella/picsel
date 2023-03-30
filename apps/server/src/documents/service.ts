@@ -2,8 +2,8 @@ import type { Project } from "@packages/shared/types.ts";
 import { Automerge } from "../automerge.ts";
 import { Logger } from "../logger.ts";
 import { Redis } from "../redis.ts";
-import { connection } from "../db.ts";
-import _ from "npm:lodash";
+import { debounce } from "https://deno.land/std@0.181.0/async/mod.ts";
+import { getProjectData, writeProjectData } from "../db.ts";
 
 type DocumentID = string;
 
@@ -13,44 +13,23 @@ export class DocumentsService {
 
   constructor(readonly redis: Redis) {}
 
-  // going to fake reading the document
-  // ideally it can store permanent in redis or sql or something
-  public async getDocument(documentID: string) {
+  public async getDocument(owner: string, documentID: string) {
     if (this.documents.has(documentID)) {
       return this.documents.get(documentID)!;
     }
-    let document: Automerge.Doc<unknown>;
+
     const documentData = await this.redis.sendCommand("GET", documentID);
-    if (documentData) {
-      const data = Uint8Array.from(documentData.buffer());
-      document = Automerge.load(data);
+    let data: Uint8Array;
+    if (documentData.buffer()?.length) {
+      data = Uint8Array.from(documentData.buffer());
     } else {
-      document = Automerge.from<Project>({
-        id: documentID,
-        layers: [],
-        name: "Test Name",
-        size: {
-          width: 16,
-          height: 16,
-        },
-      } as Project);
-      await this.saveDocument(documentID, document);
+      data = await getProjectData(owner, documentID);
     }
 
-    return document;
-  }
+    const document = Automerge.load(data);
+    await this.redis.set(documentID, Automerge.save(document));
+    this.documents.set(documentID, document);
 
-  public async createDocument(documentID: string) {
-    const document = Automerge.from<Project>({
-      id: documentID,
-      layers: [{ cells: [], id: crypto.randomUUID(), name: "Layer 1" }],
-      name: "Test Name",
-      size: {
-        width: 16,
-        height: 16,
-      },
-    } as Project);
-    await this.saveDocument(documentID, document);
     return document;
   }
 
@@ -60,25 +39,31 @@ export class DocumentsService {
     if (!!haveDocument && documentData) {
       return Uint8Array.from(documentData.buffer());
     } else {
-      console.log("here 1");
-      this.logger.log("Creating new document on demand");
-      const doc = await this.createDocument(documentID);
-      return Automerge.save(doc);
+      return null;
     }
   }
 
   public async saveDocument(
+    owner: string,
     documentID: string,
     document: Automerge.Doc<unknown>
   ) {
     await this.redis.set(documentID, Automerge.save(document));
     this.documents.set(documentID, document);
 
-    this.storeDocument(documentID);
+    this.updateStoredDocument(owner, documentID);
   }
 
-  // I dont think this is safe... 🤷‍♂️
-  private storeDocument = _.debounce((documentID: string) => {
-    connection;
-  }, 5000);
+  public async clearLocalCache(documentID: string) {
+    this.documents.delete(documentID);
+    await this.redis.del(documentID);
+  }
+
+  updateStoredDocument = debounce(async (owner: string, documentID: string) => {
+    this.logger.log("Uploading document");
+    const documentData = await this.redis.sendCommand("GET", documentID);
+    if (documentData.buffer()?.length) {
+      await writeProjectData(owner, documentID, documentData.buffer());
+    }
+  }, 1000);
 }
