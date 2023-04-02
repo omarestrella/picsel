@@ -1,32 +1,31 @@
-import { Automerge } from "../automerge.ts";
-import { decodeMessage, encodeMessage } from "@packages/shared/messages.ts";
+import { decodeMessage } from "@packages/shared/messages.ts";
 
 import { Logger } from "../logger.ts";
 import { DocumentsService } from "./service.ts";
+import { LiveDocument } from "./live-document.ts";
+import { Redis } from "../redis.ts";
 
 type DocumentID = string;
 
 export class DocumentsGateway {
   logger = new Logger("DocumentsGateway");
 
-  documents = new Map<DocumentID, Automerge.Doc<unknown>>();
-  syncStates = new Map<Automerge.ActorId, Automerge.SyncState>();
-
+  liveDocuments = new Map<DocumentID, LiveDocument>();
   connections = new Map<DocumentID, Set<WebSocket>>();
-  connectionData = new Map<
-    WebSocket,
-    { owner: string; actorID: Automerge.ActorId; documentID: string }
-  >();
+  connectionData = new Map<WebSocket, LiveDocument>();
 
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly redis: Redis,
+    private readonly documentsService: DocumentsService
+  ) {}
 
-  onConnect(
+  async onConnect(
     client: WebSocket,
     documentID: string,
-    owner: string | null,
+    email: string | null,
     actorID: string | null
   ) {
-    if (!actorID || !documentID || !owner) {
+    if (!actorID || !documentID || !email) {
       client.close(4500);
       return;
     }
@@ -37,34 +36,53 @@ export class DocumentsGateway {
     const connections = this.connections.get(documentID)!;
     connections.add(client);
 
-    this.connectionData.set(client, {
-      owner,
+    let liveDocument = this.liveDocuments.get(documentID);
+    if (!liveDocument) {
+      const project = await this.documentsService.getProject(documentID);
+      const document = await this.documentsService.getDocument(
+        project.owner,
+        documentID
+      );
+
+      liveDocument = new LiveDocument(this.redis, this.documentsService, {
+        project,
+        document,
+        documentID,
+      });
+      this.liveDocuments.set(documentID, liveDocument);
+    }
+
+    liveDocument.addConnection(client, {
       actorID,
-      documentID,
+      email,
     });
+    this.connectionData.set(client, liveDocument);
 
     client.onmessage = this.onMessage.bind(this, client);
     client.onclose = this.onDisconnect.bind(this, client);
+
+    this.logger.log("Client connected", email, "-", documentID);
   }
 
-  onDisconnect = (client: WebSocket) => {
-    const data = this.connectionData.get(client);
-    if (data) {
-      const { documentID, actorID } = data;
-      console.log("client disconnected", data.actorID);
+  onDisconnect = async (client: WebSocket) => {
+    const liveDocument = this.connectionData.get(client);
+    if (liveDocument) {
+      const data = liveDocument.getConnectionData(client);
+      this.logger.log(
+        "Client disconnected",
+        data?.email,
+        "-",
+        liveDocument.documentID
+      );
 
-      this.syncStates.delete(actorID);
+      await liveDocument.removeConnection(client);
       this.connectionData.delete(client);
 
-      const connections = this.connections.get(documentID);
-      if (connections) {
-        connections.delete(client);
+      const documentConnections = this.connections.get(liveDocument.documentID);
+      documentConnections?.delete(client);
 
-        if (connections.size === 0) {
-          this.connections.delete(documentID);
-          this.documents.delete(documentID);
-          this.documentsService.clearLocalCache(documentID);
-        }
+      if (documentConnections?.size === 0) {
+        this.liveDocuments.delete(liveDocument.documentID);
       }
     }
   };
@@ -79,7 +97,7 @@ export class DocumentsGateway {
         case "connect":
           this.handleConnect(
             client,
-            decoded.owner,
+            decoded.email,
             decoded.documentID,
             decoded.actorID
           );
@@ -91,38 +109,19 @@ export class DocumentsGateway {
   };
 
   async handleConnect(
-    _client: WebSocket,
-    owner: string,
+    client: WebSocket,
+    email: string,
     documentID: string,
     actorID: string
   ) {
     // perform auth here?
-    const document = await this.documentsService.getDocument(owner, documentID);
-
-    try {
-      const [newSyncState, updates] = Automerge.generateSyncMessage(
-        document,
-        Automerge.initSyncState()
-      );
-
-      if (updates) {
-        try {
-          const [newDoc, finalSyncState] = Automerge.receiveSyncMessage(
-            document,
-            newSyncState,
-            updates
-          );
-
-          this.syncStates.set(actorID, finalSyncState);
-
-          await this.documentsService.saveDocument(owner, documentID, newDoc);
-        } catch (err) {
-          this.logger.error("Could not update document", err);
-        }
-      }
-    } catch (err) {
-      this.logger.error("Could not generate sync message", err);
+    const liveDocument = this.liveDocuments.get(documentID);
+    if (!liveDocument) {
+      this.logger.error("No document data stored locally");
+      return;
     }
+
+    await liveDocument.handleConnect(client, email, actorID);
   }
 
   async handleUpdate(client: WebSocket, updates: number[]) {
@@ -132,56 +131,12 @@ export class DocumentsGateway {
 
     this.logger.log("Recieved update from client");
 
-    const connectionData = this.connectionData.get(client);
-    if (!connectionData) {
-      this.logger.error("No connection data");
+    const liveDocument = this.connectionData.get(client);
+    if (!liveDocument) {
+      this.logger.error("No local document information");
       return;
     }
 
-    // First sync the doc with the incoming changes from the client
-    const { documentID, owner } = connectionData;
-    const document = await this.documentsService.getDocument(owner, documentID);
-    if (!document) {
-      this.logger.error("Document not found");
-    }
-
-    try {
-      const newDoc = Automerge.loadIncremental(
-        document,
-        new Uint8Array(updates)
-      );
-
-      await this.documentsService.saveDocument(owner, documentID, newDoc);
-
-      // Then we want to send the new document state to other clients
-      const allConnections = this.connections.get(documentID);
-      if (!allConnections) {
-        return;
-      }
-      allConnections.forEach((connection) => {
-        if (connection !== client) {
-          const { documentID, actorID } =
-            this.connectionData.get(connection) ?? {};
-          if (!documentID || !actorID) {
-            return;
-          }
-
-          const syncState =
-            this.syncStates.get(actorID) ?? Automerge.initSyncState();
-          const [newSyncState, clientSyncMessage] =
-            Automerge.generateSyncMessage(newDoc, syncState);
-          this.syncStates.set(actorID, newSyncState);
-          if (!clientSyncMessage) {
-            this.logger.log("No sync message to send");
-            return;
-          }
-
-          const message = encodeMessage("sync", { data: clientSyncMessage });
-          connection.send(message);
-        }
-      });
-    } catch (error) {
-      this.logger.error("Error updating document", error);
-    }
+    await liveDocument.applyUpdates(client, updates);
   }
 }

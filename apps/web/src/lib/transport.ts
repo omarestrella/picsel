@@ -12,14 +12,14 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 
 	private ws: WebSocket | undefined;
 
-	connect(owner: string, documentID: string, actorID: string) {
+	connect(email: string, documentID: string, actorID: string) {
 		if (typeof WebSocket === 'undefined') {
 			return;
 		}
 
 		const url = new URL(`ws://localhost:3000/documents/${documentID}/sync`);
 		url.searchParams.append('actorID', actorID);
-		url.searchParams.append('owner', owner);
+		url.searchParams.append('email', email);
 
 		this.ws = new WebSocket(url.toString());
 		this.ws.binaryType = 'arraybuffer';
@@ -27,11 +27,11 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 		this.ws.addEventListener('open', () => {
 			if (this.ws?.readyState === this.ws?.OPEN) {
 				console.log('Actor connecting -', actorID);
-				this.send('connect', { owner, documentID, actorID });
+				this.send('connect', { email, documentID, actorID });
 			}
 		});
 		this.ws.addEventListener('close', () => {
-			setTimeout(() => this.connect(owner, documentID, actorID), 2000);
+			setTimeout(() => this.connect(email, documentID, actorID), 2000);
 		});
 	}
 

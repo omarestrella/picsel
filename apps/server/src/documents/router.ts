@@ -5,7 +5,7 @@ import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { DocumentsGateway } from "./gateway.ts";
 
 const documentsService = new DocumentsService(redis);
-const documentsGateway = new DocumentsGateway(documentsService);
+const documentsGateway = new DocumentsGateway(redis, documentsService);
 
 export const router = new Router({
   prefix: "/documents",
@@ -18,15 +18,15 @@ router
     );
     context.response.body = documentData;
   })
-  .get("/:id/sync", (context) => {
+  .get("/:id/sync", async (context) => {
     if (!context.isUpgradable) {
       context.throw(500);
     } else {
       const ws = context.upgrade();
-      documentsGateway.onConnect(
+      await documentsGateway.onConnect(
         ws,
         context.params.id,
-        context.request.url.searchParams.get("owner"),
+        context.request.url.searchParams.get("email"),
         context.request.url.searchParams.get("actorID")
       );
     }

@@ -1,23 +1,30 @@
-import type { Project } from "@packages/shared/types.ts";
+import type { Project } from "@packages/shared/api.ts";
 import { Automerge } from "../automerge.ts";
 import { Logger } from "../logger.ts";
 import { Redis } from "../redis.ts";
-import { debounce } from "https://deno.land/std@0.181.0/async/mod.ts";
-import { getProjectData, writeProjectData } from "../db.ts";
+import {
+  getProjectData,
+  getProjectForDocumentID,
+  writeProjectData,
+} from "../db.ts";
 
 type DocumentID = string;
 
 export class DocumentsService {
-  documents = new Map<DocumentID, Automerge.Doc<unknown>>();
+  projects = new Map<string, Project>();
   logger = new Logger("DocumentsService");
 
   constructor(readonly redis: Redis) {}
 
-  public async getDocument(owner: string, documentID: string) {
-    if (this.documents.has(documentID)) {
-      return this.documents.get(documentID)!;
+  async getProject(documentID: string): Promise<Project> {
+    if (this.projects.has(documentID)) {
+      return this.projects.get(documentID)!;
+    } else {
+      return (await getProjectForDocumentID(documentID)) as Project;
     }
+  }
 
+  async getDocument(owner: string, documentID: string) {
     const documentData = await this.redis.sendCommand("GET", documentID);
     let data: Uint8Array;
     if (documentData.buffer()?.length) {
@@ -28,12 +35,11 @@ export class DocumentsService {
 
     const document = Automerge.load(data);
     await this.redis.set(documentID, Automerge.save(document));
-    this.documents.set(documentID, document);
 
     return document;
   }
 
-  public async getDocumentData(documentID: string) {
+  async getDocumentData(documentID: string) {
     const haveDocument = await this.redis.exists(documentID);
     const documentData = await this.redis.sendCommand("GET", documentID);
     if (!!haveDocument && documentData) {
@@ -43,27 +49,42 @@ export class DocumentsService {
     }
   }
 
-  public async saveDocument(
+  async markDocumentDirty(documentID: string) {
+    await this.redis.set(`${documentID}/dirty`, 1);
+  }
+
+  async isDocumentDirty(documentID: string) {
+    const data = await this.redis.sendCommand("GET", `${documentID}/dirty`);
+    return data.integer() === 1;
+  }
+
+  async saveDocument(
     owner: string,
     documentID: string,
     document: Automerge.Doc<unknown>
   ) {
-    await this.redis.set(documentID, Automerge.save(document));
-    this.documents.set(documentID, document);
+    await this.markDocumentDirty(documentID);
 
-    this.updateStoredDocument(owner, documentID);
+    const data = Automerge.save(document);
+    await Promise.allSettled([
+      this.redis.set(documentID, data),
+      this.updateStoredDocument(owner, documentID, data),
+    ]);
   }
 
-  public async clearLocalCache(documentID: string) {
-    this.documents.delete(documentID);
+  async clearLocalCache(documentID: string) {
     await this.redis.del(documentID);
   }
 
-  updateStoredDocument = debounce(async (owner: string, documentID: string) => {
+  private async updateStoredDocument(
+    owner: string,
+    documentID: string,
+    data: Uint8Array
+  ) {
     this.logger.log("Uploading document");
     const documentData = await this.redis.sendCommand("GET", documentID);
     if (documentData.buffer()?.length) {
-      await writeProjectData(owner, documentID, documentData.buffer());
+      await writeProjectData(owner, documentID, data);
     }
-  }, 1000);
+  }
 }

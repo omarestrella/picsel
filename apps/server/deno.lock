@@ -167,6 +167,7 @@
     "https://deno.land/x/cors@v1.2.2/oakCors.ts": "1348dc7673c61b85d2e80559a7b44f8e0246eaa6bcc6ec744fafe5d9b13b5c71",
     "https://deno.land/x/cors@v1.2.2/opineCors.ts": "fb5790115c26b7061d84b8d6c17d258a1e241bcab75b0bc3ca1fdb2e57bc5072",
     "https://deno.land/x/cors@v1.2.2/types.ts": "97546633ccc7f0df7a29bacba5d91dc6f61decdd1b65258300244dba905d34b8",
+    "https://deno.land/x/croner@6.0.3/dist/croner.js": "a28ce3562d41922dd3060542001ded2e8546528e495b554e42ecdf0b1db5c382",
     "https://deno.land/x/gotrue@3.0.0/mod.ts": "878db4a2be913f69d5c0fd553888b60f34c62841ad051bd4a5144ec813f8f3f3",
     "https://deno.land/x/gotrue@3.0.0/src/GoTrueApi.ts": "311a89687b560e70ad510380c16264a30703bc646028af004c0d422ed05d468e",
     "https://deno.land/x/gotrue@3.0.0/src/GoTrueClient.ts": "b93bf389cdfdc006f3d19871d3c55d68d6f7391cc4f4eb545cb41244595bb1e3",

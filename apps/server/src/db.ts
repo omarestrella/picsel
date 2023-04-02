@@ -55,3 +55,18 @@ export async function getProject(projectID: string) {
   }
   return project.data;
 }
+
+export async function getProjectForDocumentID(documentID: string) {
+  const project = await supabase
+    .from("projects")
+    .select("*")
+    .eq("document_id", documentID)
+    .single();
+  if (project.error) {
+    throw new Error(project.error.message);
+  }
+  if (!project.data) {
+    throw new Error("Project not found");
+  }
+  return project.data;
+}
