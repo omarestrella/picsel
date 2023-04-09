@@ -8,7 +8,7 @@ import {
 } from '@packages/shared/messages';
 
 export class WebSocketTransport extends EventEmitter<Messages> {
-	private connected = false;
+	private reconnect = true;
 
 	private ws: WebSocket | undefined;
 
@@ -31,8 +31,15 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 			}
 		});
 		this.ws.addEventListener('close', () => {
+			if (!this.reconnect) return;
+
 			setTimeout(() => this.connect(email, documentID, actorID), 2000);
 		});
+	}
+
+	disconnect() {
+		this.reconnect = false;
+		this.ws?.close();
 	}
 
 	sendUpdates(updates: Uint8Array) {

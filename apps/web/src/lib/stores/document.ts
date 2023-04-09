@@ -32,6 +32,9 @@ export function createDocument(options: { owner: string; documentID: string; dat
 		},
 		undo() {
 			console.log('No undo yet :(');
+		},
+		disconnect() {
+			ws?.disconnect();
 		}
 	};
 

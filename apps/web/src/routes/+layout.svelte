@@ -2,6 +2,10 @@
 	import '../app.postcss';
 </script>
 
+<svelte:head>
+	<title>Picsel</title>
+</svelte:head>
+
 <slot />
 
 <style>

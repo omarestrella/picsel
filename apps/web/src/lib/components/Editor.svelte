@@ -4,6 +4,7 @@
 	import Canvas from './canvas/Canvas.svelte';
 	import Layers from './Layers.svelte';
 	import Toolbar from './Toolbar.svelte';
+	import Header from './Header.svelte';
 
 	let document = getContext<DocumentStore>('documentStore');
 </script>
@@ -19,11 +20,14 @@
 
 {#if $document.id}
 	<div class="editor">
-		<Toolbar />
+		<Header />
 
-		<div class="panels">
-			<Layers />
+		<div class="panels w-full h-full grid grid-rows-1 grid-cols-[48px_minmax(0,_1fr)_128px]">
+			<Toolbar />
+
 			<Canvas />
+
+			<!-- <Layers /> -->
 		</div>
 	</div>
 {/if}
@@ -32,13 +36,6 @@
 	.editor {
 		display: grid;
 		grid-template-rows: 48px minmax(0, 1fr);
-		height: 100%;
-		width: 100%;
-	}
-
-	.panels {
-		display: grid;
-		grid-template-columns: 128px minmax(0, 1fr);
 		height: 100%;
 		width: 100%;
 	}

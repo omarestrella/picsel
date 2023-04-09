@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import type { PageData } from './$types';
 	import Editor from '$lib/components/Editor.svelte';
 	import { createDocument } from '$lib/stores/document';
-	import { setContext } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import { activeLayer } from '$lib/stores/layer';
 
 	export let data: PageData;
@@ -21,6 +22,10 @@
 
 	setContext('documentStore', document);
 	setContext('document', $document);
+
+	onDestroy(() => {
+		document.disconnect();
+	});
 </script>
 
 <div id="chrome">

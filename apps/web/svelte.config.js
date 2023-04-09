@@ -7,14 +7,7 @@ import nested from 'postcss-nested';
 const config = {
 	// Consult https://kit.svelte.dev/docs/integrations#preprocessors
 	// for more information about preprocessors
-	preprocess: [
-		vitePreprocess(),
-		preprocess({
-			postcss: {
-				plugins: [nested()]
-			}
-		})
-	],
+	preprocess: [vitePreprocess()],
 
 	kit: {
 		adapter: adapter()
@@ -23,8 +16,8 @@ const config = {
 	vitePlugin: {
 		experimental: {
 			inspector: {
-				toggleKeyCombo: 'meta-shift',
-				holdMode: true,
+				toggleKeyCombo: 'ctrl+shift',
+				holdMode: false,
 				showToggleButton: 'always',
 				toggleButtonPos: 'bottom-right'
 			}
