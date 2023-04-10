@@ -6,6 +6,7 @@ import {
 	type Messages,
 	type MessageType
 } from '@packages/shared/messages';
+import { PUBLIC_WEBSOCKET_SERVER } from '$env/static/public';
 
 export class WebSocketTransport extends EventEmitter<Messages> {
 	private reconnect = true;
@@ -17,7 +18,8 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 			return;
 		}
 
-		const url = new URL(`ws://localhost:3000/documents/${documentID}/sync`);
+		// const url = new URL(`ws://localhost:4000/documents/${documentID}/sync`);
+		const url = new URL(`${PUBLIC_WEBSOCKET_SERVER}/${documentID}/sync`);
 		url.searchParams.append('actorID', actorID);
 		url.searchParams.append('email', email);
 

@@ -1,7 +1,5 @@
-import { load } from "https://deno.land/std@0.181.0/dotenv/mod.ts";
+import "https://deno.land/std@0.181.0/dotenv/load.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.1.0";
-
-await load();
 
 export const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
