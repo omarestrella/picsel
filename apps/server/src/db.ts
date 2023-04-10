@@ -1,9 +1,12 @@
 import { load } from "https://deno.land/std@0.181.0/dotenv/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.1.0";
 
-const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = await load();
+await load();
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+export const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_KEY") ?? ""
+);
 
 export async function getProjectData(owner: string, documentID: string) {
   const file = await supabase.storage
