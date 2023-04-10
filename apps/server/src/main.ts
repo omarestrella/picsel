@@ -13,4 +13,4 @@ app.use(logger.responseTime);
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-await app.listen({ port: Number(Deno.env.get("PORT")) || 3000 });
+await app.listen({ port: 4000 });
