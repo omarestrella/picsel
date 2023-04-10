@@ -3,7 +3,6 @@
   "dockerfileLines": [
     "FROM denoland/deno",
     "EXPOSE 4000",
-    "USER deno",
     "COPY ./apps/server /apps/server",
     "COPY ./packages /packages",
     "RUN deno cache --import-map=./apps/server/import_map.json ./apps/server/src/main.ts",
