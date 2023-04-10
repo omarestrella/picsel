@@ -6,6 +6,6 @@
     "COPY ./apps/server /apps/server",
     "COPY ./packages /packages",
     "RUN deno cache --import-map=./apps/server/import_map.json ./apps/server/src/main.ts",
-    "CMD [\"run\", \"--allow-net\", \"--allow-read\", \"--allow-env\", \"--allow-write\", \"--allow-ffi\", \"--import-map=./apps/server/import_map.json\",  \"./apps/server/src/main.ts\"]"
+    "CMD [\"run\", \"--allow-net\", \"--allow-read\", \"--allow-env\", \"--allow-write\", \"--allow-ffi\", \"--lock=deno.lock\", \"--lock-write\", \"--import-map=./apps/server/import_map.json\",  \"./apps/server/src/main.ts\"]"
   ]
 }
