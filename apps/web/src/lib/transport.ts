@@ -18,8 +18,7 @@ export class WebSocketTransport extends EventEmitter<Messages> {
 			return;
 		}
 
-		// const url = new URL(`ws://localhost:4000/documents/${documentID}/sync`);
-		const url = new URL(`${PUBLIC_WEBSOCKET_SERVER}/${documentID}/sync`);
+		const url = new URL(`${PUBLIC_WEBSOCKET_SERVER}/documents/${documentID}/sync`);
 		url.searchParams.append('actorID', actorID);
 		url.searchParams.append('email', email);
 
