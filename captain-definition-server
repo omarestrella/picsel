@@ -6,7 +6,7 @@
     "USER deno",
     "COPY ./apps/server /apps/server",
     "COPY ./packages /packages",
-    "RUN deno cache ./apps/server/src/main.ts",
+    "RUN deno cache --import-map=./apps/server/import_map.json ./apps/server/src/main.ts",
     "CMD [\"run\", \"--allow-net\", \"--allow-read\", \"--allow-env\", \"--allow-write\", \"--allow-ffi\", \"--import-map=./apps/server/import_map.json\",  \"./apps/server/src/main.ts\"]"
   ]
 }
