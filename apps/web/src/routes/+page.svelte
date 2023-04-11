@@ -4,6 +4,7 @@
 	import Header from '$lib/components/Header.svelte';
 	import Modal from '$lib/components/system/Modal.svelte';
 	import type { ActionData, PageData } from './$types';
+	import Card from '$lib/components/projects/Card.svelte';
 
 	export let form: ActionData;
 	export let data: PageData;
@@ -20,11 +21,7 @@
 		<Header />
 
 		<div class="content flex flex-col p-3">
-			<!-- <div>
-				<
-			</div> -->
-
-			<div class="heading flex items-center justify-between ">
+			<div class="heading flex items-center justify-between mb-3">
 				<h1 class="text-3xl font-semibold">Projects</h1>
 
 				<button
@@ -45,12 +42,13 @@
 
 			<div class="project-list">
 				<form method="post" action="?/deleteProject" use:enhance>
-					<ul>
+					<ul class="flex gap-3 flex-wrap">
 						{#each data.projects as project}
-							<li>
+							<Card {project} />
+							<!-- <li>
 								<a href="/project/{project.id}">{project.name}</a>
 								<button name="projectID" value={project.id} type="submit">delete</button>
-							</li>
+							</li> -->
 						{/each}
 					</ul>
 				</form>

@@ -3,6 +3,7 @@ import { DocumentsService } from "./service.ts";
 import { redis } from "../redis.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { DocumentsGateway } from "./gateway.ts";
+import { Automerge } from "../automerge.ts";
 
 const documentsService = new DocumentsService(redis);
 const documentsGateway = new DocumentsGateway(redis, documentsService);
@@ -17,6 +18,17 @@ router
       context.params.id
     );
     context.response.body = documentData;
+  })
+  .get("/:id/preview", async (context) => {
+    const owner = context.request.url.searchParams.get("owner");
+    if (owner) {
+      const doc = await documentsService.getDocument(owner, context.params.id);
+      context.response.status = 200;
+      context.response.body = Automerge.toJS(doc) as Record<string, unknown>;
+    } else {
+      context.response.status = 404;
+      context.response.body = "Not found";
+    }
   })
   .get("/:id/sync", async (context) => {
     if (!context.isUpgradable) {

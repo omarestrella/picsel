@@ -5,6 +5,14 @@ import { router as appRouter } from "./router.ts";
 
 const app = new Application();
 
+app.use(async (context, next) => {
+  context.response.headers.set(
+    "Access-Control-Allow-Origin",
+    context.request.headers.get("Origin") ?? "*"
+  );
+  await next();
+});
+
 app.use(logger.logger);
 app.use(logger.responseTime);
 
