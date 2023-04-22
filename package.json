@@ -15,11 +15,10 @@
   "devDependencies": {
     "prettier": "latest",
     "supabase": "1.45.2",
-    "turbo": "latest"
+    "turbo": "^1.9.3"
   },
   "engines": {
     "node": ">=14.0.0"
   },
-  "dependencies": {},
   "packageManager": "pnpm@7.27.1"
 }
