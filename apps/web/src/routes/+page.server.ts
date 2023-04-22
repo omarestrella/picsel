@@ -1,10 +1,10 @@
 import { Automerge } from '$lib/automerge';
 import type { Project } from '@packages/shared/types';
 import { fail, redirect } from '@sveltejs/kit';
-import { createProject, deleteProject, getProjects, supabase } from '../db';
+import { createProject, deleteProject, getProjects } from '../db';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load = (async ({ locals }) => {
+export const load = (async ({ locals, fetch }) => {
 	const session = await locals.getSession();
 	if (!session?.user?.email) {
 		return {
@@ -12,8 +12,15 @@ export const load = (async ({ locals }) => {
 		};
 	}
 	const projects = await getProjects(session.user.email);
+	const previews = await Promise.all(
+		projects.map(async (project) => {
+			const res = await fetch(`/api/project/${project.id}`);
+			return res.json();
+		})
+	);
 	return {
-		projects
+		projects,
+		previews
 	};
 }) satisfies PageServerLoad;
 

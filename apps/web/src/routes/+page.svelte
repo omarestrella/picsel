@@ -44,7 +44,7 @@
 				<form method="post" action="?/deleteProject" use:enhance>
 					<ul class="flex gap-3 flex-wrap">
 						{#each data.projects as project}
-							<Card {project} />
+							<Card project={data.previews?.find((p) => p.id === project.document_id)} />
 						{/each}
 					</ul>
 				</form>

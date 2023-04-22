@@ -9,14 +9,12 @@
 
 	let cells: Record<string, Cell> = {};
 	$: {
-		console.log(layer?.cells);
 		cells =
 			layer?.cells.reduce((obj, cell) => {
 				let key = `${cell.x}-${cell.y}`;
 				obj[key] = cell;
 				return obj;
 			}, {} as Record<string, Cell>) || {};
-		console.log(cells);
 	}
 </script>
 
