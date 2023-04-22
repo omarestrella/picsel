@@ -45,16 +45,19 @@ export async function createProject(
 			contentType: 'application/octect-stream'
 		});
 
-	const project = await supabase.from('projects').insert({
-		owner: projectData.owner,
-		name: projectData.projectName,
-		document_id: projectData.documentID
-	});
+	const project = await supabase
+		.from('projects')
+		.insert({
+			owner: projectData.owner,
+			name: projectData.projectName,
+			document_id: projectData.documentID
+		})
+		.select();
 	if (project.error) {
 		throw new Error(project.error.message);
 	}
 
-	return project.data;
+	return project.data[0];
 }
 
 export async function getProject(owner: string, projectID: string) {

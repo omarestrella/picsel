@@ -1,4 +1,4 @@
-import { Automerge, bytesToHex } from '$lib/automerge';
+import { Automerge } from '$lib/automerge';
 import type { Project } from '@packages/shared/types';
 import { fail, redirect } from '@sveltejs/kit';
 import { createProject, deleteProject, getProjects, supabase } from '../db';
@@ -34,19 +34,19 @@ export const actions = {
 		const document = Automerge.from<Project>({
 			id: crypto.randomUUID(),
 			layers: [{ cells: [], id: crypto.randomUUID(), name: 'Layer 1' }],
-			name: 'Test Name',
+			name: projectName,
 			size: {
 				width: 16,
 				height: 16
 			}
 		} as Project);
 
-		await createProject(
+		const project = await createProject(
 			{ owner: session.user.email, projectName, documentID: document.id },
 			Automerge.save(document)
 		);
 
-		return { success: true };
+		throw redirect(303, `/project/${project.id}`);
 	},
 	deleteProject: async ({ request, locals }) => {
 		const formData = await request.formData();

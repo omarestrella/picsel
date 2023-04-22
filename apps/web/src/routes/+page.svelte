@@ -45,10 +45,6 @@
 					<ul class="flex gap-3 flex-wrap">
 						{#each data.projects as project}
 							<Card {project} />
-							<!-- <li>
-								<a href="/project/{project.id}">{project.name}</a>
-								<button name="projectID" value={project.id} type="submit">delete</button>
-							</li> -->
 						{/each}
 					</ul>
 				</form>
@@ -64,7 +60,17 @@
 							<p>Invalid project name</p>
 						{/if}
 
-						<input name="projectName" placeholder="Project name" />
+						<div class="w-full h-8 my-3">
+							<input
+								class="
+									w-full px-2 py-1 rounded-sm
+									ring-1 ring-gray-200
+									focus:ring-blue-500
+								"
+								name="projectName"
+								placeholder="Project name"
+							/>
+						</div>
 
 						<div class="w-full flex flex-row-reverse gap-2">
 							<button

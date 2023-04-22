@@ -44,4 +44,8 @@
 			>{project.name}</span
 		>
 	</a>
+
+	<button class="absolute right-1 top-1" name="projectID" value={project.id} type="submit">
+		delete
+	</button>
 </div>
