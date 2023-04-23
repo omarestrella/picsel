@@ -4,6 +4,12 @@ import { fail, redirect } from '@sveltejs/kit';
 import { createProject, deleteProject, getProjects } from '../db';
 import type { Actions, PageServerLoad } from './$types';
 
+import type { Config } from '@sveltejs/adapter-vercel';
+
+export const config: Config = {
+	runtime: 'edge'
+};
+
 export const load = (async ({ locals, fetch }) => {
 	const session = await locals.getSession();
 	if (!session?.user?.email) {

@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { getProjectByDocumentID, getDocument } from '../../../db';
 import type { PageServerLoad } from './$types';
+import type { Config } from '@sveltejs/adapter-vercel';
 
 export const load = (async ({ params, parent }) => {
 	const { session } = await parent();
@@ -16,3 +17,7 @@ export const load = (async ({ params, parent }) => {
 		project
 	};
 }) satisfies PageServerLoad;
+
+export const config: Config = {
+	runtime: 'edge'
+};
