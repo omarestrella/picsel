@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { getProject, getDocument } from '../../../db';
+import { getProjectByDocumentID, getDocument } from '../../../db';
 import type { PageServerLoad } from './$types';
 
 export const load = (async ({ params, parent }) => {
@@ -8,7 +8,7 @@ export const load = (async ({ params, parent }) => {
 		throw redirect(303, '/auth');
 	}
 
-	const project = await getProject(session.user.email, params.project);
+	const project = await getProjectByDocumentID(session.user.email, params.project);
 	const document = await getDocument(session.user.email, project.document_id);
 
 	return {

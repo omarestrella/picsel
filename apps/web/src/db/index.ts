@@ -78,6 +78,24 @@ export async function getProject(owner: string, projectID: string) {
 	};
 }
 
+export async function getProjectByDocumentID(owner: string, documentID: string) {
+	const project = await supabase
+		.from('projects')
+		.select('*')
+		.eq('document_id', documentID)
+		.eq('owner', owner)
+		.single();
+	if (project.error) {
+		throw new Error(project.error.message);
+	}
+	if (!project.data) {
+		throw new Error('Project not found');
+	}
+	return {
+		...project.data
+	};
+}
+
 export async function deleteProject(owner: string, projectID: string) {
 	await supabase.from('projects').delete().eq('id', projectID).eq('owner', owner).single();
 }
