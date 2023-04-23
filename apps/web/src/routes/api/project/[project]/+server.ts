@@ -3,6 +3,12 @@ import { PUBLIC_SERVER_URL } from '$env/static/public';
 import { error } from '@sveltejs/kit';
 import { supabase } from '../../../../db';
 
+import type { Config } from '@sveltejs/adapter-vercel';
+
+export const config: Config = {
+	runtime: 'edge'
+};
+
 export const GET = (async ({ url, params, fetch, locals }) => {
 	const { project: projectID } = params;
 
